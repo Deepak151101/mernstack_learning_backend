@@ -3,11 +3,15 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const express = require("express");
 
+const cors = require("cors"); // Import the cors module
+
 // app contains all methods & functions i.e to access to methods of express in variable 'app'
 const app = express(); // Now with the help of app we can access the properties of express
 
+app.use(cors()); // Use cors middleware to enable CORS for all routes
+
 // We have specified the path of file
-dotenv.config({ path: "./config.env" }); // We store the connection to db in a separate 'config.env' file to keep our username and password secure/private to us, as we add the 'config.env' file to '.gitignore'. So it would ignore that file when we host the application
+dotenv.config({ path: "./node_modules/config.env" }); // We store the connection to db in a separate 'config.env' file to keep our username and password secure/private to us, as we add the 'config.env' file to '.gitignore'. So it would ignore that file when we host the application
 require("./db/conn");
 
 // For our application to understand json data format as a input from user i.e data we need to use middleware
@@ -41,20 +45,20 @@ app.listen(PORT, () => {
 
 // Middleware -
 // After executing of req and res what next
-const middleware = (req, res, next) => {
-  console.log("Hello my Middleware");
-  next(); // 'next()' function is called, which is a callback indicating that the middleware has completed its operation, and the next middleware or save operation can proceed.
-};
+// const middleware = (req, res, next) => {
+//   console.log("Hello my Middleware");
+//   next(); // 'next()' function is called, which is a callback indicating that the middleware has completed its operation, and the next middleware or save operation can proceed.
+// };
 
 // When we click on about middleware will first check if the user has login or not, if not then he will be redirected to login page first & then after login he can access About
-app.get("/about", middleware, (req, res) => {
-  res.send("Hello AboutMe from the server"); // When we use a Middleware in between '/about' & '(req,res)' then the middleware will work in between, to check if user is logged in, if yes then only he can access AboutMe page else using middleware we redirect him to login page
-});
+// app.get("/about", middleware, (req, res) => {
+//   res.send("Hello AboutMe from the server"); // When we use a Middleware in between '/about' & '(req,res)' then the middleware will work in between, to check if user is logged in, if yes then only he can access AboutMe page else using middleware we redirect him to login page
+// });
 
-app.get("/contact", (req, res) => {
-  res.cookie("Test", 'Deepak');
-  res.send("Hello Contact from the server");
-});
+// app.get("/contact", (req, res) => {
+//   res.cookie("Test", "Deepak");
+//   res.send("Hello Contact from the server");
+// });
 
 app.get("/signin", (req, res) => {
   res.send("Hello Login from the server");

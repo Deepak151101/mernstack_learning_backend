@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const brcypt = require("bcryptjs");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
+const authenticate = require("../middleware/authenticate");
+const cookieParser = require("cookie-parser"); // Import cookie-parser
+router.use(cookieParser()); // Use cookie-parser middleware
 
 require("../db/conn");
 const User = require("../model/userSchema");
@@ -44,6 +47,8 @@ router.post("/register", async (req, res) => {
 
       // Now in 'user' all data of the user entered is stored, now we need to save this data in our database collection
       await user.save();
+
+      const token = jwt.sign({ _id: user._id }, process.env.SECRET_KEY);
     }
 
     res.status(201).json({ message: "User registered successfully" }); // Give this msg after getting all data
@@ -78,13 +83,16 @@ router.post("/signin", async (req, res) => {
       token = await userLogin.generateAuthToken(); // Generate token & then store in DB
       console.log(token);
 
-      res.cookie("jwtoken", token, { // respond a cookie a inbuilt function to store token into cookie, with 2 parameters - Name of cookie & what value we want to store, when should the cookie expire, and where we can add it (http or https)
+      // Generate cookie
+      res.cookie("jwtoken", token, {
+        // respond a cookie a inbuilt function to store token into cookie, with 2 parameters - Name of cookie & what value we want to store, when should the cookie expire, and where we can add it (http or https)
         expires: new Date(Date.now() + 2589200000), // Here we expire the user's token from current date to 30 days later...25892000000 is in miliseconds
-        httpOnly: true // Ensures it will work even if our page is not secure i.e https
+        httpOnly: true, // Ensures it will work even if our page is not secure i.e https
+        secure: false, // Set this to true when using HTTPS
       });
 
       if (!isMatch) {
-        res.status(400).json({  error: "Enter correct credentials" }); // If password credentials don't match
+        res.status(400).json({ error: "Enter correct credentials" }); // If password credentials don't match
       } else {
         res.json({ message: "User signin successful" }); // Give this msg on login
       }
@@ -94,6 +102,60 @@ router.post("/signin", async (req, res) => {
   } catch (err) {
     console.log(err);
   }
+});
+
+// About us page
+router.get("/about", authenticate, (req, res) => {
+  // authenticate is a middleware
+  console.log("Hello my About");
+  console.log("User's JWT token:", req.cookies.jwtoken); // Verify that the token is received
+  res.send(req.rootUser);
+});
+
+// Get user data for contact us & home page
+router.get("/getdata", authenticate, (req, res) => {
+  res.send(req.rootUser);
+});
+
+// Contact Us page
+router.post("/contact", authenticate, async (req, res) => {
+  try {
+    // We need to get data that user has entered in contact page. All details of user Name, Email, Phone, Message must be received
+
+    const { name, email, phone, message } = req.body; // Object Destructuring
+
+    // Check if user hasn't sent empty data as -
+    if (!name || !email || !phone || !message) {
+      console.log("Error in contact form");
+      return res.json({ error: "Please fill the contact form" });
+    }
+
+    // Now, we need to upload the message in the database of that particular user
+
+    const userContact = await User.findOne({ _id: req.userID }); // From auth.js line 10
+
+    if (userContact) {
+      const userMessage = await userContact.addMessage(
+        name,
+        email,
+        phone,
+        message
+      );
+
+      await userContact.save();
+
+      res.status(201).json({ message: "User contact successfully" });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
+// Logout page
+router.get("/logout", (req, res) => {
+  // authenticate is a middleware
+  console.log("Hello my Logout Page");
+  res.clearCookie("jwtoken", { path: "/" }); // Clear the cookies & go to home page '/'
+  res.status(200).send("User logout");
 });
 
 module.exports = router;

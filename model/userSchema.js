@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const dotenv = require("dotenv");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 // Here we actually define the structure of document, how we want to store data
 const userSchema = new mongoose.Schema({
@@ -29,6 +29,30 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  date: {
+    type: Date,
+    default: Date.now
+  },
+  messages: [ // Array of an object
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+      email: {
+        type: String,
+        required: true,
+      },
+      phone: {
+        type: String,
+        required: true,
+      },
+      message: {
+        type: String,
+        required: true,
+      },
+    }
+  ],
   tokens: [
     {
       token: {
@@ -65,12 +89,26 @@ userSchema.methods.generateAuthToken = async function () {
 
     await this.save(); // To save the token & save() returns a promise so we use await
     return token;
-
   } catch (err) {
     console.log(err);
   }
 };
 // userSchema is a instance & when working with a instance we need to use method
+
+
+// Store the  message 
+userSchema.methods.addMessage = async function (name,email,phone,message) {
+  try {
+
+    this.messages = this.messages.concat({name, email, phone, message}); // Message value is added in schema now
+    await this.save(); // Message is saved now
+    return this.messages; // We return the message
+
+  } catch (error) {
+    console.log(error)
+  }
+}
+
 
 // Collection creation - model(collection_name , document_structure)
 const User = mongoose.model("USER", userSchema);
